@@ -18,13 +18,21 @@ public class LocationController {
     private KafkaService kafkaService;
 
     @PostMapping("/update")
-    public ResponseEntity<?> updateLocation(){
+    public ResponseEntity<?> updateLocation() {
 
-        for (int i = 1; i <= 200000; i++) {
-            this.kafkaService.updateLocation("( " + Math.round(Math.random() * 100) + " , " + Math.round(Math.random() * 100) + " " + ")");
+        for (int i = 1; i <= 20; i++) {
+            if (i <= 10) {
+                this.kafkaService.updateLocation("( " + Math.round(Math.random() * 100) + " , " + Math.round(Math.random() * 100) + " " + ")");
+            }
+            else if (i<=15)
+            {
+                this.kafkaService.updateLocation1("{ " + Math.round(Math.random() * 100) + " , " + Math.round(Math.random() * 100) + " " + "}");
+
+            }
+            else {
+                this.kafkaService.updateLocation2("[" + Math.round(Math.random() * 100) + " , " + Math.round(Math.random() * 100) + " " + "]");
+            }
         }
-
         return new ResponseEntity<>(Map.of("message", "Location updated"), HttpStatus.OK);
-
     }
 }

@@ -13,8 +13,9 @@ public class KafkaConfig {
     public NewTopic topic(){
         return TopicBuilder
                 .name(AppConstants.LOCATION_TOPIC_NAME)
-//                .partitions()
-//                .replicas()
+                .partitions(3)
+                .replicas(1)
+                .config("retention.ms",Long.toString(60000))
                 .build();
     }
 }
