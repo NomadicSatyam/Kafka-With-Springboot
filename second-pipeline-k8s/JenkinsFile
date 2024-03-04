@@ -15,64 +15,72 @@ pipeline {
         stage('Clone Code') {
             steps {
                 echo 'Cloning The Code ...'
-                git url: 'git@github.com:NomadicSatyam/Kafka-With-Springboot.git', branch: 'dev'
+                git url: "https://github.com/NomadicSatyam/Kafka-With-Springboot.git", branch: "dev"
             }
         }
 
         stage('MVN Build') {
             steps {
-                sh 'ls -ltr'
-                sh '''
-                    cd deliveryboyapp && mvn clean package
-                    cd ../enduser && mvn clean package
-                '''
+                script {
+                    // Move to each project directory and run Maven build
+                    dir('deliveryboyapp') {
+                        sh 'mvn clean package'
+                    }
+                    dir('enduser') {
+                        sh 'mvn clean package'
+                    }
+                }
             }
         }
 
         stage('Build and Push Docker Image') {
-    environment {
-        DOCKER_IMAGE_DELIVERYBOY = "satyambrother/kafka-deliveryboyapp:${BUILD_NUMBER}"
-        DOCKER_IMAGE_ENDUSER = "satyambrother/kafka-enduser:${BUILD_NUMBER}"
-        REGISTRY_CREDENTIALS = credentials('dockerHub')
-    }
-    steps {
-        script {
-            // Build and push the Docker image for 'deliveryboyapp'
-            sh 'cd deliveryboyapp && docker build -t ${DOCKER_IMAGE_DELIVERYBOY} .'
-            def dockerImageDeliveryBoy = docker.image("${DOCKER_IMAGE_DELIVERYBOY}")
-            docker.withRegistry('https://index.docker.io/v1/', "dockerHub") {
-                dockerImageDeliveryBoy.push()
-            }
-
-            // Build and push the Docker image for 'enduser'
-            sh 'cd $WORKSPACE/enduser && docker build -t ${DOCKER_IMAGE_ENDUSER} .'
-            def dockerImageEndUser = docker.image("${DOCKER_IMAGE_ENDUSER}")
-            docker.withRegistry('https://index.docker.io/v1/', "dockerHub") {
-                dockerImageEndUser.push()
-            }
-        }
-    }
-}
-
-
-        stage('Update Deployment File') {
             environment {
-                GIT_REPO_NAME = "Kubernetes-Manifests-Collections"
-                GIT_USER_NAME = "NomadicSatyam"
+                DOCKER_IMAGE_DELIVERYBOY = "satyambrother/kafka-deliveryboyapp:${BUILD_NUMBER}"
+                DOCKER_IMAGE_ENDUSER = "satyambrother/kafka-enduser:${BUILD_NUMBER}"
+                REGISTRY_CREDENTIALS = credentials('dockerHub')
             }
             steps {
-                withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                    sh '''
-                        git config user.email "satyamm1998@gmail.com"
-                        git config user.name "Satyam Singh"
-                        BUILD_NUMBER=${BUILD_NUMBER}
-                        sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" Kafka-With-Springboot/deployment.yml
-                        git add Kafka-With-Springboot/deployment.yml
-                        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:dev
-                    '''
+                script {
+                    // Build and push the Docker image for 'deliveryboyapp'
+                    dir('deliveryboyapp') {
+                        sh "docker build -t ${DOCKER_IMAGE_DELIVERYBOY} ."
+                        docker.withRegistry('https://index.docker.io/v1/', 'dockerHub') {
+                            sh "docker push ${DOCKER_IMAGE_DELIVERYBOY}"
+                        }
+                    }
+
+                    // Build and push the Docker image for 'enduser'
+                    dir('enduser') {
+                        sh "docker build -t ${DOCKER_IMAGE_ENDUSER} ."
+                        docker.withRegistry('https://index.docker.io/v1/', 'dockerHub') {
+                            sh "docker push ${DOCKER_IMAGE_ENDUSER}"
+                        }
+                    }
                 }
             }
         }
-    }
+
+    //     stage('Update Deployment File') {
+    //         environment {
+    //             GIT_REPO_NAME = "Kubernetes-Manifests-Collections"
+    //             GIT_USER_NAME = "NomadicSatyam"
+    //         }
+    //         steps {
+    //             script {
+    //                 withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+    //                     dir('Kafka-With-Springboot') {
+    //                         sh '''
+    //                             git config user.email "satyamm1998@gmail.com"
+    //                             git config user.name "Satyam Singh"
+    //                             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" deployment.yml
+    //                             git add deployment.yml
+    //                             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+    //                             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:dev
+    //                         '''
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 }
