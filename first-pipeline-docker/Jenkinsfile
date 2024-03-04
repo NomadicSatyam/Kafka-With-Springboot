@@ -14,7 +14,7 @@ pipeline {
             steps {
                 // Your build steps here
                 echo 'Cloning The Code ...'
-                git url: "git@github.com:NomadicSatyam/Kafka-With-Springboot.git" , branch:"dev"
+                git url: "https://github.com/NomadicSatyam/Kafka-With-Springboot.git" , branch:"dev"
             }
         }
         
