@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Cleanup Workspace') {
+            steps {
+                // Clean up the workspace to start with a clean slate
+                cleanWs()
+            }
+        }
+
+        stage('Clone Code') {
+            steps {
+                // Your build steps here
+                echo 'Cloning The Code ...'
+                git url: "git@github.com:NomadicSatyam/Kafka-With-Springboot.git" , branch:"dev"
+            }
+        }
+        
+        stage('MVN Build') {
+            steps {
+                sh 'ls -ltr'
+                // Build the projects and create JAR files
+                sh '''
+                    cd deliveryboyapp && mvn clean package
+                    cd ../enduser && mvn clean package
+                '''
+            }
+        }
+
+        stage('Build and Push Docker Image') {
+            environment {
+                DOCKER_IMAGE_DELIVERYBOY = "satyambrother/kafka-deliveryboyapp:${BUILD_NUMBER}"
+                DOCKER_IMAGE_ENDUSER = "satyambrother/kafka-enduser:${BUILD_NUMBER}"
+                REGISTRY_CREDENTIALS = credentials('dockerHub')
+            }
+            steps {
+                script {
+                    // Build and push the Docker image for 'deliveryboyapp'
+                    sh 'cd deliveryboyapp && docker build -t ${DOCKER_IMAGE_DELIVERYBOY} .'
+                    def dockerImageDeliveryBoy = docker.image("${DOCKER_IMAGE_DELIVERYBOY}")
+                    docker.withRegistry('https://index.docker.io/v1/', "dockerHub") {
+                        dockerImageDeliveryBoy.push()
+                    }
+
+                    // Build and push the Docker image for 'enduser'
+                    sh 'cd ../enduser && docker build -t ${DOCKER_IMAGE_ENDUSER} .'
+                    def dockerImageEndUser = docker.image("${DOCKER_IMAGE_ENDUSER}")
+                    docker.withRegistry('https://index.docker.io/v1/', "dockerHub") {
+                        dockerImageEndUser.push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Code') {
+            steps {
+                // Your deployment steps here
+                echo 'Deploying The Container...'
+                sh 'cd Kafka-With-Springboot'
+                sh "docker-compose down && docker-compose up -d"
+            }
+        }
+    }
+}
