@@ -59,7 +59,7 @@ pipeline {
             steps {
                 // Your deployment steps here
                 echo 'Deploying The Container...'
-                sh 'cd Kafka-With-Springboot'
+                sh 'cd $WORKSPACE/Kafka-With-Springboot'
                 sh "docker-compose down && docker-compose up -d"
             }
         }
