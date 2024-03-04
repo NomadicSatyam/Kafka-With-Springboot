@@ -15,7 +15,7 @@ public class KafkaConfig {
                 .name(AppConstants.LOCATION_TOPIC_NAME)
                 .partitions(3)
                 .replicas(1)
-                .config("retention.ms",Long.toString(60000))
+                .config("retention.ms",Long.toString(600000))
                 .build();
     }
 }
